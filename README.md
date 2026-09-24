@@ -1,5 +1,7 @@
 # jevis
 
+**[Trace inspector (live) →](https://jevis-pied.vercel.app)** — replays the recorded demo run step by step.
+
 A voice-driven desktop agent for Windows that reads the UI Automation tree
 instead of pixels.
 
