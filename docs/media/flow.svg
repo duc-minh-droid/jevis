@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 470" width="980" height="470" font-family="Segoe UI, system-ui, -apple-system, sans-serif">
+  <title>How one command flows through jevis</title>
+  <style>
+    .bg { fill: #0b0e15; }
+    .box { fill: #121826; stroke: #2a3345; stroke-width: 1.5; }
+    .good { fill: #0e2a22; stroke: #1f6f55; }
+    .think { fill: #1c1733; stroke: #4c3d7a; }
+    .bad { fill: #2a1219; stroke: #7a2f3f; }
+    .uia { fill: #101d34; stroke: #2d4876; }
+    .t { fill: #f2f4f9; font-size: 14px; font-weight: 600; }
+    .s { fill: #8b95a9; font-size: 11.5px; }
+    .m { fill: #8b95a9; font-size: 11px; font-family: Cascadia Code, Consolas, monospace; }
+    .edge { fill: none; stroke: #3a4458; stroke-width: 1.6; }
+    .hot { fill: none; stroke: #5b9dff; stroke-width: 1.6; }
+    .lab { fill: #525b6d; font-size: 11px; }
+    .g { fill: #34d399; } .p { fill: #a78bfa; } .r { fill: #fb7185; } .b { fill: #5b9dff; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#3a4458"/>
+    </marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#5b9dff"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="980" height="470" rx="16"/>
+
+  <text x="28" y="38" class="t" style="font-size:16px">One command, end to end</text>
+  <text x="28" y="58" class="s">The deterministic path (blue) needs no network and no model. Every step is checked against the live UI.</text>
+
+  <!-- row 1: input -->
+  <rect class="box" x="28" y="86" width="140" height="62" rx="10"/>
+  <text x="44" y="112" class="t">Voice</text>
+  <text x="44" y="132" class="s">any dictation tool</text>
+
+  <rect class="box" x="200" y="86" width="150" height="62" rx="10"/>
+  <text x="216" y="112" class="t">Transcript</text>
+  <text x="216" y="132" class="s">typed into the bar</text>
+
+  <rect class="box" x="382" y="86" width="150" height="62" rx="10"/>
+  <text x="398" y="112" class="t">normalise()</text>
+  <text x="398" y="132" class="s">strip "hey jevis, please"</text>
+
+  <rect class="box good" x="564" y="86" width="186" height="62" rx="10"/>
+  <text x="580" y="112" class="t">Deterministic matcher</text>
+  <text x="580" y="132" class="s">skills.py regexes, in order</text>
+
+  <path class="hot" d="M168 117 H198" marker-end="url(#ab)"/>
+  <path class="hot" d="M350 117 H380" marker-end="url(#ab)"/>
+  <path class="hot" d="M532 117 H562" marker-end="url(#ab)"/>
+
+  <!-- model tier -->
+  <path class="edge" d="M750 117 H800 V190" marker-end="url(#a)"/>
+  <text x="758" y="108" class="lab">no match</text>
+  <rect class="box think" x="770" y="192" width="182" height="62" rx="10"/>
+  <text x="786" y="218" class="t">Jev route</text>
+  <text x="786" y="238" class="s">typed choice + probabilities</text>
+
+  <path class="edge" d="M860 254 V296" marker-end="url(#a)"/>
+  <rect class="box think" x="770" y="298" width="182" height="62" rx="10"/>
+  <text x="786" y="324" class="t">Small-model planner</text>
+  <text x="786" y="344" class="s">JSON steps, validated</text>
+
+  <path class="edge" d="M952 223 H966 V405 H954" marker-end="url(#a)"/>
+  <text x="962" y="376" class="lab" text-anchor="end">reject</text>
+  <rect class="box bad" x="770" y="384" width="182" height="46" rx="10"/>
+  <text x="786" y="405" class="t">Refused</text>
+  <text x="786" y="422" class="s">unsafe or no allowed app</text>
+
+  <!-- plan -->
+  <path class="hot" d="M657 148 V190" marker-end="url(#ab)"/>
+  <text x="664" y="176" class="lab">match</text>
+  <rect class="box good" x="564" y="192" width="186" height="62" rx="10"/>
+  <text x="580" y="218" class="t">Plan</text>
+  <text x="580" y="238" class="m">launch / type_text / menu</text>
+  <path class="edge" d="M800 298 V274 H700 V256" marker-end="url(#a)"/>
+
+  <!-- per step loop -->
+  <path class="hot" d="M564 223 H500 V296" marker-end="url(#ab)"/>
+  <rect x="28" y="286" width="700" height="156" rx="12" fill="none" stroke="#2a3345" stroke-dasharray="4 4"/>
+  <text x="44" y="306" class="lab">for each step (max 8), bound to one window, never the foreground</text>
+
+  <rect class="box" x="44" y="320" width="146" height="62" rx="10"/>
+  <text x="60" y="346" class="t">require</text>
+  <text x="60" y="366" class="m">editor_empty</text>
+
+  <rect class="box uia" x="214" y="320" width="160" height="62" rx="10"/>
+  <text x="230" y="346" class="t">UIA snapshot</text>
+  <text x="230" y="366" class="s">roles, names, rects</text>
+
+  <rect class="box uia" x="398" y="320" width="146" height="62" rx="10"/>
+  <text x="414" y="346" class="t">act</text>
+  <text x="414" y="366" class="m">Invoke / SetValue</text>
+
+  <rect class="box good" x="568" y="320" width="146" height="62" rx="10"/>
+  <text x="584" y="346" class="t">expect</text>
+  <text x="584" y="366" class="m">read the UI back</text>
+
+  <path class="hot" d="M190 351 H212" marker-end="url(#ab)"/>
+  <path class="hot" d="M374 351 H396" marker-end="url(#ab)"/>
+  <path class="hot" d="M544 351 H566" marker-end="url(#ab)"/>
+  <path class="edge" d="M641 382 V414 H117 V384" marker-end="url(#a)"/>
+  <text x="300" y="432" class="lab">failed check: retry the whole plan (x3), or replan once with the error</text>
+
+  <!-- a packet travelling the deterministic path -->
+  <circle r="5" class="b">
+    <animateMotion dur="6s" repeatCount="indefinite"
+      path="M98 117 H657 V223 H500 V304 H117 V351 H641" keyPoints="0;1" keyTimes="0;1" calcMode="linear"/>
+    <animate attributeName="fill" values="#5b9dff;#5b9dff;#34d399;#34d399" keyTimes="0;0.8;0.9;1" dur="6s" repeatCount="indefinite"/>
+  </circle>
+
+  <text x="28" y="458" class="lab">Measured on the deterministic tier: 32/32 runs, mean 3.38 s. Recorded demo commands: 0.9 to 2.6 s each.</text>
+</svg>

@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 360" width="980" height="360" font-family="Segoe UI, system-ui, -apple-system, sans-serif">
+  <title>Which window does launch() bind to</title>
+  <style>
+    .bg { fill: #0b0e15; }
+    .box { fill: #121826; stroke: #2a3345; stroke-width: 1.5; }
+    .good { fill: #0e2a22; stroke: #1f6f55; }
+    .bad { fill: #2a1219; stroke: #7a2f3f; }
+    .t { fill: #f2f4f9; font-size: 14px; font-weight: 600; }
+    .s { fill: #8b95a9; font-size: 11.5px; }
+    .m { fill: #8b95a9; font-size: 11px; font-family: Cascadia Code, Consolas, monospace; }
+    .lab { fill: #525b6d; font-size: 11px; }
+    .edge { fill: none; stroke: #3a4458; stroke-width: 1.6; }
+    .win { fill: #f4f5f8; stroke: #c9ced8; }
+    .bar { fill: #e7e9f0; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#3a4458"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="980" height="360" rx="16"/>
+  <text x="28" y="38" class="t" style="font-size:16px">launch("notepad"): which window is ours?</text>
+  <text x="28" y="58" class="s">Process matching is not enough. A window being new is not enough either: starting Notepad can restore the user's last session.</text>
+
+  <!-- step 1 -->
+  <rect class="box" x="28" y="84" width="210" height="100" rx="10"/>
+  <text x="44" y="110" class="t">1  Record what exists</text>
+  <text x="44" y="132" class="m">before = {hwnd of every</text>
+  <text x="44" y="148" class="m">  notepad.exe window}</text>
+  <text x="44" y="170" class="s">the user may be working in these</text>
+
+  <path class="edge" d="M238 134 H268" marker-end="url(#a)"/>
+
+  <rect class="box" x="270" y="84" width="200" height="100" rx="10"/>
+  <text x="286" y="110" class="t">2  Launch, watch</text>
+  <text x="286" y="132" class="s">poll for windows whose hwnd</text>
+  <text x="286" y="148" class="s">is not in before</text>
+  <text x="286" y="170" class="m">apps.window_process()</text>
+
+  <path class="edge" d="M470 134 H500" marker-end="url(#a)"/>
+
+  <!-- candidates -->
+  <g>
+    <rect class="win" x="504" y="84" width="200" height="118" rx="6"/>
+    <rect class="bar" x="505" y="85" width="198" height="22" rx="5"/>
+    <rect x="512" y="90" width="52" height="12" rx="3" fill="#ffffff" stroke="#c9ced8"/>
+    <rect x="568" y="90" width="52" height="12" rx="3" fill="#ffffff" stroke="#c9ced8"/>
+    <rect x="624" y="90" width="52" height="12" rx="3" fill="#ffffff" stroke="#c9ced8"/>
+    <rect x="514" y="120" width="140" height="6" rx="3" fill="#b7bcc7"/>
+    <rect x="514" y="132" width="110" height="6" rx="3" fill="#b7bcc7"/>
+    <rect x="514" y="144" width="126" height="6" rx="3" fill="#b7bcc7"/>
+    <rect class="bad" x="504" y="210" width="200" height="54" rx="10"/>
+    <text x="518" y="232" class="t" style="fill:#fb7185">restored session</text>
+    <text x="518" y="250" class="s">several tabs, or text in the editor</text>
+    <text x="518" y="286" class="s">left alone, never moved or typed in</text>
+  </g>
+
+  <g>
+    <rect class="win" x="744" y="84" width="200" height="118" rx="6"/>
+    <rect class="bar" x="745" y="85" width="198" height="22" rx="5"/>
+    <rect x="752" y="90" width="60" height="12" rx="3" fill="#ffffff" stroke="#c9ced8"/>
+    <rect x="752" y="118" width="2" height="14" fill="#5b9dff">
+      <animate attributeName="opacity" values="1;0;1" dur="1.1s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="742" y="82" width="204" height="122" rx="8" fill="none" stroke="#5b9dff" stroke-width="2">
+      <animate attributeName="stroke-opacity" values="1;0.45;1" dur="1.6s" repeatCount="indefinite"/>
+    </rect>
+    <rect class="good" x="744" y="210" width="200" height="54" rx="10"/>
+    <text x="758" y="232" class="t" style="fill:#34d399">ours</text>
+    <text x="758" y="250" class="s">one tab, empty editor</text>
+    <text x="758" y="286" class="s">bound; type_text still requires</text>
+    <text x="758" y="302" class="m">editor_empty</text>
+  </g>
+
+  <text x="28" y="222" class="t">3  Classify each new window</text>
+  <text x="28" y="244" class="s">Notepad, Calculator (through ApplicationFrameHost)</text>
+  <text x="28" y="262" class="s">and Explorer (which also owns the desktop) all</text>
+  <text x="28" y="280" class="s">go through the same rule.</text>
+  <text x="28" y="316" class="lab">If only restored windows appear, launch once more: a running Notepad opens a clean window.</text>
+  <text x="28" y="334" class="lab">Anything typed is still guarded by the require clause, the last line of defence.</text>
+</svg>

@@ -2,3 +2,7 @@ uiautomation>=2.0.20
 pillow>=10.0.0
 keyboard>=0.13.5
 pystray>=0.19.5
+
+# Optional:
+#   sounddevice    JEVIS_MIC=1, a real microphone level for the waveform
+#   imageio-ffmpeg python -m jevis --demo --record out.mp4
