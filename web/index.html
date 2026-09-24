@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jevis inspector</title>
+<link rel="stylesheet" href="inspector.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="orb" id="orb"></span>
+    <div>
+      <h1>jevis <span>inspector</span></h1>
+      <p>One spoken command, replayed from a real trace: voice, transcript, matcher, plan, UI Automation query, action, verification.</p>
+    </div>
+  </div>
+  <div class="controls">
+    <button id="play" class="primary" aria-label="Play">Replay</button>
+    <label class="speed">speed
+      <select id="speed">
+        <option value="0.5">0.5x</option>
+        <option value="1" selected>1x</option>
+        <option value="2">2x</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs" aria-label="Recorded commands"></nav>
+
+<main class="grid">
+  <ol class="flow" id="flow">
+    <li class="stage" data-stage="voice">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <h2><b>1</b> Voice <em>Windows TTS, real envelope</em></h2>
+        <canvas id="wave" height="56"></canvas>
+      </div>
+    </li>
+    <li class="stage" data-stage="transcript">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <h2><b>2</b> Transcript <em>typed into the bar by the dictation layer</em></h2>
+        <div class="transcript"><span id="typed"></span><i class="caret"></i></div>
+        <div class="norm" id="norm"></div>
+      </div>
+    </li>
+    <li class="stage" data-stage="match">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <h2><b>3</b> Deterministic matcher <em>skills.py, tried in order, no model</em></h2>
+        <ul class="skills" id="skills"></ul>
+        <div class="tier" id="tier"></div>
+      </div>
+    </li>
+    <li class="stage" data-stage="plan">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <h2><b>4</b> Plan <em>fixed tool sequence with pre/postconditions</em></h2>
+        <ul class="steps" id="steps"></ul>
+      </div>
+    </li>
+    <li class="stage" data-stage="done">
+      <div class="rail"><span class="dot"></span></div>
+      <div class="card">
+        <h2><b>5</b> Result</h2>
+        <div class="result" id="result"></div>
+      </div>
+    </li>
+  </ol>
+
+  <aside class="side">
+    <section class="panel">
+      <h3>Screen <em>UIA BoundingRectangle of each target</em></h3>
+      <div class="screen" id="screen"><div class="screen-label">primary monitor, 1920 x 1080</div></div>
+    </section>
+    <section class="panel">
+      <h3>UIA tree <em id="tree-title">what the tool surface saw</em></h3>
+      <pre class="tree" id="tree"></pre>
+    </section>
+    <section class="panel">
+      <h3>Event log <em>timestamps from the trace</em></h3>
+      <ol class="log" id="log"></ol>
+    </section>
+  </aside>
+</main>
+
+<footer class="foot">
+  Data: <code>web/traces.js</code>, written by <code>python -m jevis --demo --trace-out web/traces.js</code>
+  during the same run as the recording. <span id="generated"></span>
+</footer>
+
+<script src="traces.js"></script>
+<script src="inspector.js"></script>
+</body>
+</html>
