@@ -40,7 +40,7 @@ def backdrop(bar) -> tk.Toplevel:
     return sheet
 
 
-def settle(bar, frames: int = 22) -> None:
+def settle(bar, frames: int = 50) -> None:
     for _ in range(frames):
         bar.root.update()
         time.sleep(0.02)
@@ -49,7 +49,8 @@ def settle(bar, frames: int = 22) -> None:
 def shot(bar) -> Image.Image:
     settle(bar)
     x, y = bar.root.winfo_rootx(), bar.root.winfo_rooty()
-    return ImageGrab.grab((x, y, x + ui.WIDTH, y + ui.HEIGHT))
+    # The window is as tall as the longest plan; only the card is drawn.
+    return ImageGrab.grab((x, y, x + ui.WIDTH, y + round(bar.card_target)))
 
 
 def framed(image: Image.Image) -> Image.Image:
@@ -94,64 +95,84 @@ def main() -> int:
     bar.show()
     sheet = backdrop(bar)
     bar.root.lift()
-    # show() captures whatever window was focused. These images are public, so
-    # pin a neutral target instead of shipping whatever was on screen.
-    bar.canvas.itemconfigure(bar.target_text, text="Untitled - Notepad")
     settle(bar, 40)
 
-    idle = shot(bar)
-    framed(idle).save(os.path.join(DOCS, "hero.png"))
+    def target(text: str = "Untitled - Notepad") -> None:
+        # show() captures whatever window was focused. These images are
+        # public, so pin a neutral target instead of shipping what was on screen.
+        bar.canvas.itemconfigure(bar.target_text, text=text)
 
-    bar.entry.insert(0, "open my default browser")
-    bar._on_type()
-    bar.canvas.itemconfigure(bar.target_text, text="Untitled - Notepad")
+    def typed(text: str) -> None:
+        bar.entry.configure(state="normal")
+        bar.entry.delete(0, "end")
+        bar.entry.insert(0, text)
+        bar._preview(text)
+
+    target()
+    idle = shot(bar)
+
+    # Listening: hold the input level up the way a voice would.
+    bar._input_level = lambda: 0.55 + 0.35 * abs(__import__("math").sin(time.time() * 7))
+    typed("open notepad and write hel")
+    bar._set_state("listening")
+    bar._say("listening", ui.GHOST)
+    listening = shot(bar)
+    bar._input_level = lambda: 0.0
+    bar.level = 0.0
+
+    typed("open my default browser")
+    bar._set_state("ready")
     deterministic = shot(bar)
 
-    bar.entry.delete(0, "end")
-    bar.entry.insert(0, "open notepad and write a poem about rain")
-    bar._on_type()
-    bar.canvas.itemconfigure(bar.target_text, text="Untitled - Notepad")
+    typed("open notepad and write a poem about rain")
     planned = shot(bar)
 
-    bar.entry.delete(0, "end")
-    bar.entry.insert(0, "open notepad and write hello world")
-    bar._on_type()
+    command = "open notepad and write hello world"
+    typed(command)
+    bar.entry.configure(state="disabled")
+    bar._render_chips([])
     bar.running = True
-    bar.phase = 0.42
-    bar._animate()
-    bar._say("running   open notepad and write hello world", ui.ACCENT)
-    bar.canvas.itemconfigure(bar.target_text, text="Untitled - Notepad")
-    running = shot(bar)
+    bar._set_state("thinking")
+    bar._say("matching   deterministic skills first", ui.THINK)
+    thinking = shot(bar)
 
-    bar.running = False
-    bar._dot(ui.GOOD)
-    bar._underline(1.0, ui.GOOD)
-    bar._say("done   open_and_write   3.4s", ui.GOOD)
-    bar.canvas.itemconfigure(bar.target_text, text="Untitled - Notepad")
+    bar._apply("match", {"tier": "skill", "skill": "open_and_write",
+                         "steps": ["launch notepad", "type 'hello world'"]})
+    bar._apply("step", {"index": 1})
+    bar._apply("target", {"index": 1, "elements": 41})
+    bar._apply("verify", {"index": 1, "ok": True, "clause": "expect", "detail": "app"})
+    bar._apply("step", {"index": 2})
+    bar._apply("verify", {"index": 2, "ok": True, "clause": "require", "detail": "editor_empty"})
+    acting = shot(bar)
+
+    bar._apply("verify", {"index": 2, "ok": True, "clause": "expect", "detail": "editor_contains"})
+    bar._finish({"ok": True, "how": "open_and_write", "elapsed": 2.6, "error": "", "close": False})
     done = shot(bar)
+    framed(done).save(os.path.join(DOCS, "hero.png"))
 
-    bar.entry.delete(0, "end")
-    bar.entry.insert(0, "open spotify")
-    bar._on_type()
-    bar._dot(ui.BAD)
-    bar._underline(1.0, ui.BAD)
-    bar._say("failed   no supported app. jevis can open: browser, calc, explorer, "
-             "mspaint, notepad, terminal", ui.BAD)
-    bar.canvas.itemconfigure(bar.target_text, text="Untitled - Notepad")
+    bar._clear_rows()
+    bar.card_target = bar.card_h = float(ui.BASE_H)
+    bar.progress = bar.progress_target = 0.0
+    typed("open spotify")
+    bar._finish({"ok": False, "how": "", "elapsed": 0.0, "close": False,
+                 "error": "no supported app. jevis can open: browser, calc, explorer, "
+                          "mspaint, notepad, terminal"})
     failed = shot(bar)
 
     stack([
-        label(idle, "idle  ·  suggestions offered"),
+        label(idle, "ready  ·  suggestions offered, orb breathing"),
+        label(listening, "listening  ·  waveform follows the input level"),
         label(deterministic, "deterministic  ·  no model will run"),
         label(planned, "model-planned  ·  a model will compose the text"),
-        label(running, "running"),
-        label(done, "done"),
+        label(thinking, "thinking  ·  choosing a tier"),
+        label(acting, "acting  ·  each step ticks off as its postcondition is read back"),
+        label(done, "done  ·  verified, a toast confirms it"),
         label(failed, "refused  ·  names what it can open, never substitutes"),
     ]).save(os.path.join(DOCS, "states.png"))
 
     sheet.destroy()
     bar.root.destroy()
-    print(f"wrote {DOCS}\\hero.png and states.png")
+    print(f"wrote hero.png and states.png in {DOCS}")
     return 0
 
 
