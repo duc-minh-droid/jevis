@@ -32,6 +32,10 @@ auto.SetGlobalSearchTimeout(2)
 MAX_ELEMENTS = 120
 MAX_DEPTH = 12
 
+# Called with each window a launch creates, before it is snapshotted. None in
+# normal use; the --demo driver sets it to place windows on the recorded screen.
+on_new_window = None
+
 
 class ToolError(RuntimeError):
     """Raised for conditions the agent is expected to see and react to."""
@@ -205,7 +209,8 @@ def launch(app: str, args: list[str] | None = None, timeout: float = 20.0) -> Sn
     if not spec.available:
         raise ToolError(f"{key} is not installed on this machine")
 
-    def find_window():
+    def windows() -> list:
+        found = []
         for candidate in auto.GetRootControl().GetChildren():
             if candidate.ControlType != auto.ControlType.WindowControl:
                 continue
@@ -214,27 +219,73 @@ def launch(app: str, args: list[str] | None = None, timeout: float = 20.0) -> Sn
             rect = candidate.BoundingRectangle
             if rect.right <= rect.left:
                 continue
-            if apps.process_name(candidate.ProcessId) in spec.processes:
-                return candidate
-        return None
+            if apps.window_process(candidate) in spec.processes:
+                found.append(candidate)
+        return found
 
-    # Already running, no argument, and it has a "new document" command?
-    # Open a blank one rather than adopting whatever the user is working in.
-    if spec.new_doc and not args:
-        existing = find_window()
-        if existing is not None:
-            return menu(snapshot(existing), spec.new_doc)
+    # Bind to a window this launch produced, never one that was already on
+    # screen: the user may be working in it. (explorer.exe also owns the
+    # desktop itself, which an "any matching window" search would adopt.)
+    before = {w.NativeWindowHandle for w in windows()}
+    seen = set(before)
 
-    subprocess.Popen([*spec.argv, *(args or [])], shell=False)
+    def ours(window) -> bool:
+        """Is this new window the document we asked for?
 
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        time.sleep(0.4)
-        window = find_window()
-        if window is not None:
+        "New" is not enough. Starting Notepad when it is not running restores
+        the previous session, so the user's own documents come back as fresh
+        windows. Only a blank editor (or the file we named) is ours.
+        """
+        if args:
+            return os.path.basename(args[0]).lower() in (window.Name or "").lower()
+        if not spec.typable:
+            return True
+        try:
+            snap = snapshot(window)
+            # A restored window can have a blank tab in front of the user's
+            # other tabs. Ours is a window holding one empty document.
+            tabs = [e for e in snap.elements if e.role == "TabItem"]
+            return len(tabs) <= 1 and not (snap.first_editable().value or "").strip()
+        except Exception:
+            return False
+
+    # Single-instance apps (Calculator, a tabbed Notepad opening a file) may
+    # reuse an existing window instead of making one. Give a new window a
+    # moment to appear before deciding which case this is. A typable app gets
+    # a second launch if the first only brought back restored documents; once
+    # it is running, a bare launch opens a blank window.
+    patience = min(timeout, 6.0 if before else timeout)
+    for _round in range(2 if spec.typable and not args else 1):
+        subprocess.Popen([*spec.argv, *(args or [])], shell=False)
+        deadline = time.time() + patience
+        while time.time() < deadline:
+            time.sleep(0.4)
+            fresh = [w for w in windows() if w.NativeWindowHandle not in seen]
+            if not fresh:
+                continue
             time.sleep(0.6)  # let the window finish painting its content
-            return snapshot(window)
-    raise ToolError(f"{key} did not present a window within {timeout}s")
+            for window in fresh:
+                if ours(window):
+                    if on_new_window is not None:
+                        on_new_window(key, window)
+                    return snapshot(window)
+                seen.add(window.NativeWindowHandle)  # restored: leave it alone
+
+    existing = windows()
+    if existing and args:
+        # The file opened as a tab in an existing window; bind only if that
+        # window now shows the file we asked for.
+        wanted = os.path.basename(args[0]).lower()
+        for window in existing:
+            if wanted in (window.Name or "").lower():
+                return snapshot(window)
+    if existing and spec.new_doc and not args:
+        # A tabbed editor that stayed in one window: open a blank document
+        # rather than adopting whatever tab the user is working in.
+        return menu(snapshot(existing[0]), spec.new_doc)
+    if existing and not spec.typable:
+        return snapshot(existing[0])  # reusing a calculator cannot hurt anything
+    raise ToolError(f"{key} did not present a new window within {patience:.0f}s")
 
 
 def snapshot(window=None) -> Snapshot:
@@ -271,7 +322,7 @@ def snapshot(window=None) -> Snapshot:
 
     walk(window, 0)
     return Snapshot(window.Name or "", window.ClassName or "", elements, window=window,
-                    process=apps.process_name(window.ProcessId))
+                    process=apps.window_process(window))
 
 
 def click(snap: Snapshot, element_id: int) -> Snapshot:

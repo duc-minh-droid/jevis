@@ -40,6 +40,29 @@ def process_name(pid: int) -> str:
         _kernel32.CloseHandle(handle)
 
 
+_FRAME_HOST = "applicationframehost.exe"
+
+
+def window_process(window) -> str:
+    """The process that really owns a top-level window.
+
+    Store (UWP) apps such as Calculator present their top-level window through
+    ApplicationFrameHost.exe; the app's own process owns a child CoreWindow.
+    Matching the frame host would match every Store app at once, so look
+    through it to the child.
+    """
+    name = process_name(window.ProcessId)
+    if name == _FRAME_HOST:
+        try:
+            for child in window.GetChildren():
+                owner = process_name(child.ProcessId)
+                if owner and owner != _FRAME_HOST:
+                    return owner
+        except Exception:
+            pass
+    return name
+
+
 def default_browser() -> tuple[str, str] | None:
     """(executable path, process name) of the registered https handler."""
     try:
